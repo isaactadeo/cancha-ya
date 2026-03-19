@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { login } from '../services/api'
+import CanchaBackground from '../components/CanchaBackground'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -26,49 +28,71 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <div className="bg-white p-8 rounded-2xl shadow-md w-full max-w-md">
-        <h1 className="text-3xl font-bold text-green-600 mb-2">CanchaYa</h1>
-        <p className="text-gray-500 mb-6">Iniciá sesión para reservar</p>
+    <div className="min-h-screen flex items-center justify-center">
+      <CanchaBackground />
+
+      <motion.div
+        className="glass rounded-3xl p-10 w-full max-w-md shadow-2xl"
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7, ease: 'easeOut' }}
+      >
+        <div className="text-center mb-8">
+          <motion.div
+            className="text-6xl mb-3"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.3, type: 'spring', stiffness: 200 }}
+          >
+            ⚽
+          </motion.div>
+          <h1 className="text-4xl font-bold text-white">CanchaYa</h1>
+          <p className="text-white/60 mt-1">Reservá tu turno</p>
+        </div>
 
         {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">
+          <motion.div
+            className="bg-red-500/20 border border-red-400/40 text-red-200 p-3 rounded-xl mb-4 text-sm text-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
             {error}
-          </div>
+          </motion.div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-sm text-white/70 mb-1">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
-              placeholder="isaac@test.com"
+              className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-green-400 transition"
+              placeholder="tu@email.com"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+            <label className="block text-sm text-white/70 mb-1">Contraseña</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
+              className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-green-400 transition"
               placeholder="••••••"
               required
             />
           </div>
-          <button
+          <motion.button
             type="submit"
             disabled={loading}
-            className="w-full bg-green-600 text-white py-2 rounded-lg font-medium hover:bg-green-700 transition disabled:opacity-50"
+            className="w-full bg-green-500 hover:bg-green-400 text-white py-3 rounded-xl font-semibold transition disabled:opacity-50 mt-2"
+            whileTap={{ scale: 0.97 }}
           >
             {loading ? 'Entrando...' : 'Ingresar'}
-          </button>
+          </motion.button>
         </form>
-      </div>
+      </motion.div>
     </div>
   )
 }
