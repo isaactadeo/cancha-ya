@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { getCanchas, getReservasPorFecha, crearReserva } from '../services/api'
+import { getCanchas, getReservasPorFecha, getReservasAdminPorFecha, crearReserva } from '../services/api'
 import Modal from '../components/Modal'
 import CanchaBackground from '../components/CanchaBackground'
+import ModalReservaAdmin from '../components/ModalReservaAdmin'
 
 const HORARIOS = [
   '08:00','09:00','10:00','11:00','12:00','13:00',
@@ -28,6 +29,7 @@ export default function Grilla() {
   const [selected, setSelected] = useState(null)
   const [loading, setLoading] = useState(false)
   const [mensaje, setMensaje] = useState('')
+  const [reservaSeleccionada, setReservaSeleccionada] = useState(null)
   const navigate = useNavigate()
 
   const user = JSON.parse(localStorage.getItem('user') || '{}')
@@ -38,7 +40,11 @@ export default function Grilla() {
   }, [])
 
   useEffect(() => {
-    getReservasPorFecha(formatFecha(fecha))
+    const fetchReservas = isAdmin
+      ? getReservasAdminPorFecha(formatFecha(fecha))
+      : getReservasPorFecha(formatFecha(fecha))
+
+    fetchReservas
       .then(r => setReservas(r.data || []))
       .catch(() => setReservas([]))
   }, [fecha])
@@ -52,9 +58,13 @@ export default function Grilla() {
   }
 
   const handleCelda = (cancha, hora) => {
-    if (getReserva(cancha.id, hora)) return
-    setSelected({ cancha, slot: { hora } })
+  const reserva = getReserva(cancha.id, hora)
+  if (reserva) {
+    if (isAdmin) setReservaSeleccionada(reserva)
+    return
   }
+  setSelected({ cancha, slot: { hora } })
+}
 
   const handleConfirmar = async () => {
     if (!selected) return
@@ -67,7 +77,10 @@ export default function Grilla() {
       setTimeout(() => {
         setSelected(null)
         setMensaje('')
-        getReservasPorFecha(formatFecha(fecha)).then(r => setReservas(r.data || []))
+        const fetch = isAdmin
+          ? getReservasAdminPorFecha(formatFecha(fecha))
+          : getReservasPorFecha(formatFecha(fecha))
+        fetch.then(r => setReservas(r.data || []))
       }, 1500)
     } catch (e) {
       setMensaje(e.response?.data?.error || 'Error al reservar')
@@ -86,45 +99,36 @@ export default function Grilla() {
     <div className="min-h-screen text-white">
       <CanchaBackground />
 
-      {/* Header */}
       <motion.div
-        className="glass-dark px-6 py-4 flex items-center justify-between"
+        className="header-glass px-6 py-3 flex items-center justify-between"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
       >
         <div className="flex items-center gap-3">
-          <span className="text-2xl">⚽</span>
-          <h1 className="text-2xl font-bold text-white">CanchaYa</h1>
+          <span className="logo-text">Cancha<span>YA</span></span>
           {isAdmin && (
-            <span className="text-xs bg-yellow-500/30 border border-yellow-400/40 text-yellow-300 px-2 py-0.5 rounded-full">
+            <span className="text-xs bg-yellow-500/20 border border-yellow-400/30 text-yellow-300 px-2 py-0.5 rounded-full">
               Admin
             </span>
           )}
         </div>
-        <div className="flex items-center gap-4">
-  {isAdmin && (
-    <button
-      onClick={() => navigate('/admin')}
-      className="text-sm bg-yellow-500/20 border border-yellow-400/40 text-yellow-300 px-3 py-1 rounded-lg hover:bg-yellow-500/30 transition"
-    >
-      Panel admin
-    </button>
-  )}
-  <button
-    onClick={() => navigate('/mis-reservas')}
-    className="text-sm text-white/60 hover:text-white transition"
-  >
-    Mis reservas
-  </button>
-  <span className="text-sm text-white/70">{user.full_name}</span>
-  <button onClick={logout} className="text-sm text-red-400 hover:text-red-300 transition">
-    Salir
-  </button>
-</div>
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <button onClick={() => navigate('/admin')} className="nav-btn nav-btn-admin">
+              Panel admin
+            </button>
+          )}
+          <button onClick={() => navigate('/mis-reservas')} className="nav-btn">
+            Mis reservas
+          </button>
+          <span className="text-sm text-white/50 px-2">{user.full_name}</span>
+          <button onClick={logout} className="nav-btn nav-btn-danger">
+            Salir
+          </button>
+        </div>
       </motion.div>
 
       <div className="p-6">
-        {/* Navegación de fecha */}
         <motion.div
           className="flex items-center gap-4 mb-6"
           initial={{ opacity: 0 }}
@@ -144,7 +148,6 @@ export default function Grilla() {
           >→</button>
         </motion.div>
 
-        {/* Mensaje */}
         <AnimatePresence>
           {mensaje && (
             <motion.div
@@ -162,7 +165,6 @@ export default function Grilla() {
           )}
         </AnimatePresence>
 
-        {/* Leyenda */}
         <div className="flex gap-4 mb-4 text-sm text-white/70">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded cell-libre"></div>
@@ -174,7 +176,6 @@ export default function Grilla() {
           </div>
         </div>
 
-        {/* Grilla */}
         <motion.div
           className="glass-dark rounded-2xl overflow-x-auto"
           initial={{ opacity: 0, y: 20 }}
@@ -209,14 +210,14 @@ export default function Grilla() {
                       <td key={cancha.id} className="p-2 text-center">
                         <button
                           onClick={() => handleCelda(cancha, hora)}
-                          disabled={!!reserva}
+                          disabled={!!reserva && !isAdmin}
                           className={`w-full py-2 px-3 rounded-xl text-xs font-medium ${
                             reserva ? 'cell-ocupado text-red-300' : 'cell-libre text-green-300 cursor-pointer'
                           }`}
                         >
                           {reserva
                             ? isAdmin
-                              ? `${reserva.user_id.slice(0, 6)}...`
+                              ? reserva.user_name || `${reserva.user_id.slice(0, 6)}...`
                               : 'Ocupado'
                             : 'Libre'
                           }
@@ -230,7 +231,6 @@ export default function Grilla() {
           </table>
         </motion.div>
 
-        {/* Panel admin */}
         {isAdmin && (
           <motion.div
             className="mt-6 glass-dark rounded-2xl p-6"
@@ -265,6 +265,11 @@ export default function Grilla() {
         onConfirm={handleConfirmar}
         onClose={() => setSelected(null)}
         loading={loading}
+      />
+
+      <ModalReservaAdmin
+        reserva={reservaSeleccionada}
+        onClose={() => setReservaSeleccionada(null)}
       />
     </div>
   )

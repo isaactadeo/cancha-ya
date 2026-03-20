@@ -70,23 +70,19 @@ export default function MisReservas() {
 
       {/* Header */}
       <motion.div
-        className="glass-dark px-6 py-4 flex items-center justify-between"
+        className="header-glass px-6 py-3 flex items-center justify-between"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
       >
         <div className="flex items-center gap-3">
-          <span className="text-2xl">⚽</span>
-          <h1 className="text-2xl font-bold text-white">CanchaYa</h1>
+          <span className="logo-text">Cancha<span>YA</span></span>
         </div>
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate('/grilla')}
-            className="text-sm text-white/60 hover:text-white transition"
-          >
+        <div className="flex items-center gap-2">
+          <button onClick={() => navigate('/grilla')} className="nav-btn">
             Ver grilla
           </button>
-          <span className="text-sm text-white/70">{user.full_name}</span>
-          <button onClick={logout} className="text-sm text-red-400 hover:text-red-300 transition">
+          <span className="text-sm text-white/50 px-2">{user.full_name}</span>
+          <button onClick={logout} className="nav-btn nav-btn-danger">
             Salir
           </button>
         </div>

@@ -26,3 +26,10 @@ type ReservationRequest struct {
 	StartTime string `json:"start_time" binding:"required"`             // "2026-03-20T19:00:00"
 	Duration  int    `json:"duration"   binding:"required,oneof=60 90"` // minutos
 }
+
+type ReservationWithUser struct {
+	Reservation
+	UserName  string `json:"user_name"`
+	UserEmail string `json:"user_email"`
+	UserPhone string `json:"user_phone"`
+}

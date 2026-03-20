@@ -154,3 +154,11 @@ func containsHelper(s, substr string) bool {
 	}
 	return false
 }
+
+func (s *ReservationService) GetByDateWithUser(dateStr string) ([]models.ReservationWithUser, error) {
+	date, err := time.Parse("2006-01-02", dateStr)
+	if err != nil {
+		return nil, errors.New("formato de fecha inválido, usá: 2006-01-02")
+	}
+	return s.reservationRepo.FindByDateWithUser(date)
+}

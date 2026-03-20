@@ -31,4 +31,7 @@ export const getMisReservas = () =>
 export const register = (data) =>
   api.post('/auth/register', data)
 
+export const getReservasAdminPorFecha = (fecha) =>
+  api.get(`/api/admin/reservas?fecha=${fecha}`)
+
 export default api

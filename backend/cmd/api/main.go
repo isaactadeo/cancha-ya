@@ -64,6 +64,7 @@ func main() {
 			admin.DELETE("/canchas/:id", courtHandler.Delete)
 			admin.GET("/reportes/ingresos", reportHandler.Ingresos)
 			admin.GET("/reportes/ocupacion", reportHandler.Ocupacion)
+			admin.GET("/reservas", reservationHandler.GetByDateWithUser)
 		}
 	}
 

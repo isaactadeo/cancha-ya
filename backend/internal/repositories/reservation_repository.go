@@ -86,3 +86,29 @@ func (r *ReservationRepository) UpdateStatus(id string, status models.Reservatio
 	_, err := r.db.Exec(`UPDATE reservations SET status = $1 WHERE id = $2`, status, id)
 	return err
 }
+
+func (r *ReservationRepository) FindByDateWithUser(date time.Time) ([]models.ReservationWithUser, error) {
+	rows, err := r.db.Query(`
+        SELECT r.id, r.user_id, r.court_id, r.start_time, r.end_time, 
+               r.total_price, r.status, r.created_at, u.full_name, u.email, u.phone
+        FROM reservations r
+        JOIN users u ON r.user_id = u.id
+        WHERE DATE(r.start_time) = DATE($1) AND r.status = 'reservada'
+        ORDER BY r.start_time`, date)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var reservations []models.ReservationWithUser
+	for rows.Next() {
+		var res models.ReservationWithUser
+		if err := rows.Scan(&res.ID, &res.UserID, &res.CourtID, &res.StartTime,
+			&res.EndTime, &res.TotalPrice, &res.Status, &res.CreatedAt,
+			&res.UserName, &res.UserEmail, &res.UserPhone); err != nil {
+			return nil, err
+		}
+		reservations = append(reservations, res)
+	}
+	return reservations, nil
+}
