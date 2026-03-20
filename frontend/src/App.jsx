@@ -3,6 +3,7 @@ import Login from './pages/Login'
 import Grilla from './pages/Grilla'
 import Admin from './pages/Admin'
 import MisReservas from './pages/MisReservas'
+import Reportes from './pages/Reportes'
 
 function PrivateRoute({ children }) {
   const token = localStorage.getItem('token')
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="/grilla" element={<PrivateRoute><Grilla /></PrivateRoute>} />
         <Route path="/mis-reservas" element={<PrivateRoute><MisReservas /></PrivateRoute>} />
         <Route path="/admin" element={<PrivateRoute><AdminRoute><Admin /></AdminRoute></PrivateRoute>} />
+        <Route path="/reportes" element={<PrivateRoute><AdminRoute><Reportes /></AdminRoute></PrivateRoute>} />
       </Routes>
     </BrowserRouter>
   )

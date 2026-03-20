@@ -107,6 +107,9 @@ export default function Admin() {
           </span>
         </div>
         <div className="flex items-center gap-2">
+          <button onClick={() => navigate('/reportes')} className="nav-btn nav-btn-admin">
+  Reportes
+</button>
           <button onClick={() => navigate('/grilla')} className="nav-btn">
             Ver grilla
           </button>
