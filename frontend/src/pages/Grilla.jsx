@@ -110,6 +110,12 @@ export default function Grilla() {
       Panel admin
     </button>
   )}
+  <button
+    onClick={() => navigate('/mis-reservas')}
+    className="text-sm text-white/60 hover:text-white transition"
+  >
+    Mis reservas
+  </button>
   <span className="text-sm text-white/70">{user.full_name}</span>
   <button onClick={logout} className="text-sm text-red-400 hover:text-red-300 transition">
     Salir

@@ -28,4 +28,7 @@ export const cancelarReserva = (id) =>
 export const getMisReservas = () =>
   api.get('/api/mis-reservas')
 
+export const register = (data) =>
+  api.post('/auth/register', data)
+
 export default api
