@@ -35,3 +35,6 @@ export const getReservasAdminPorFecha = (fecha) =>
   api.get(`/api/admin/reservas?fecha=${fecha}`)
 
 export default api
+
+export const getCanchasAdmin = () =>
+  api.get('/api/admin/canchas/all')

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { getCanchas } from '../services/api'
+import { getCanchasAdmin } from '../services/api'
 import api from '../services/api'
 import CanchaBackground from '../components/CanchaBackground'
 
@@ -21,8 +21,8 @@ export default function Admin() {
   }, [])
 
   const cargarCanchas = () => {
-    getCanchas().then(r => setCanchas(r.data)).catch(() => {})
-  }
+    getCanchasAdmin().then(r => setCanchas(r.data)).catch(() => {})
+}
 
   const mostrarMensaje = (msg) => {
     setMensaje(msg)

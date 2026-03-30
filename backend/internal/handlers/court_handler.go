@@ -85,3 +85,12 @@ func (h *CourtHandler) Delete(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "cancha eliminada"})
 }
+
+func (h *CourtHandler) GetAllAdmin(c *gin.Context) {
+	courts, err := h.courtService.GetAllAdmin()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, courts)
+}

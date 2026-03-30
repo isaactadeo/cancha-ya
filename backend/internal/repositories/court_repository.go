@@ -15,7 +15,7 @@ func NewCourtRepository(db *sql.DB) *CourtRepository {
 }
 
 func (r *CourtRepository) FindAll() ([]models.Court, error) {
-	rows, err := r.db.Query(`SELECT id, name, type, price_per_hour, is_active FROM courts`)
+	rows, err := r.db.Query(`SELECT id, name, type, price_per_hour, is_active FROM courts WHERE is_active = true`)
 	if err != nil {
 		return nil, err
 	}
@@ -67,6 +67,10 @@ func (r *CourtRepository) Update(c *models.Court) error {
 }
 
 func (r *CourtRepository) Delete(id int) error {
+	_, err := r.db.Exec(`DELETE FROM reservations WHERE court_id = $1`, id)
+	if err != nil {
+		return err
+	}
 	result, err := r.db.Exec(`DELETE FROM courts WHERE id = $1`, id)
 	if err != nil {
 		return err
@@ -76,4 +80,22 @@ func (r *CourtRepository) Delete(id int) error {
 		return sql.ErrNoRows
 	}
 	return nil
+}
+
+func (r *CourtRepository) FindAllIncludingInactive() ([]models.Court, error) {
+	rows, err := r.db.Query(`SELECT id, name, type, price_per_hour, is_active FROM courts`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var courts []models.Court
+	for rows.Next() {
+		var c models.Court
+		if err := rows.Scan(&c.ID, &c.Name, &c.Type, &c.PricePerHour, &c.IsActive); err != nil {
+			return nil, err
+		}
+		courts = append(courts, c)
+	}
+	return courts, nil
 }

@@ -59,12 +59,13 @@ func main() {
 		admin := api.Group("/admin", middlewares.RoleRequired("admin"))
 		{
 			admin.GET("/usuarios", authHandler.ListUsers)
-			admin.POST("/canchas", courtHandler.Create)
-			admin.PUT("/canchas/:id", courtHandler.Update)
-			admin.DELETE("/canchas/:id", courtHandler.Delete)
 			admin.GET("/reportes/ingresos", reportHandler.Ingresos)
 			admin.GET("/reportes/ocupacion", reportHandler.Ocupacion)
 			admin.GET("/reservas", reservationHandler.GetByDateWithUser)
+			admin.GET("/canchas/all", courtHandler.GetAllAdmin)
+			admin.POST("/canchas", courtHandler.Create)
+			admin.PUT("/canchas/:id", courtHandler.Update)
+			admin.DELETE("/canchas/:id", courtHandler.Delete)
 		}
 	}
 

@@ -74,3 +74,7 @@ func (s *CourtService) Delete(id int) error {
 	}
 	return err
 }
+
+func (s *CourtService) GetAllAdmin() ([]models.Court, error) {
+	return s.courtRepo.FindAllIncludingInactive()
+}

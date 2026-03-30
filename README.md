@@ -65,7 +65,7 @@ La función `calcularPrecio()` vive en el service y aplica las reglas de negocio
 JWT con claims de usuario y rol. El middleware extrae el rol del token y lo inyecta en el contexto de Gin. Las rutas de admin usan un segundo middleware `RoleRequired("admin")`.
 
 **Handlers finos**
-Los handlers parsean el request, llaman al service, y devuelven la respuesta. Nada más. En una entrevista podés decir exactamente dónde vive cada responsabilidad.
+Los handlers parsean el request, llaman al service, y devuelven la respuesta.
 
 ## Tests
 ```bash
