@@ -20,7 +20,6 @@ func NewAuthService(repo *repositories.UserRepository) *AuthService {
 }
 
 func (s *AuthService) Register(req *models.RegisterRequest) (*models.AuthResponse, error) {
-	// Verificar si el email ya existe
 	existing, err := s.userRepo.FindByEmail(req.Email)
 	if err != nil {
 		return nil, err
@@ -29,7 +28,6 @@ func (s *AuthService) Register(req *models.RegisterRequest) (*models.AuthRespons
 		return nil, errors.New("el email ya está registrado")
 	}
 
-	// Hashear la contraseña
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, err
@@ -83,9 +81,11 @@ func generateToken(user *models.User) (string, error) {
 	}
 
 	claims := jwt.MapClaims{
-		"sub":  user.ID,
-		"role": user.Role,
-		"exp":  time.Now().Add(72 * time.Hour).Unix(),
+		"sub":       user.ID,
+		"role":      user.Role,
+		"email":     user.Email,    // ← nuevo
+		"full_name": user.FullName, // ← nuevo
+		"exp":       time.Now().Add(72 * time.Hour).Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

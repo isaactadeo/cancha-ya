@@ -42,9 +42,10 @@ func AuthRequired() gin.HandlerFunc {
 			return
 		}
 
-		// Inyectamos los datos del usuario en el contexto
 		c.Set("user_id", claims["sub"])
 		c.Set("user_role", claims["role"])
+		c.Set("user_email", claims["email"])         // ← nuevo
+		c.Set("user_full_name", claims["full_name"]) // ← nuevo
 		c.Next()
 	}
 }

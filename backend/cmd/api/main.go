@@ -21,7 +21,8 @@ func main() {
 
 	authService := services.NewAuthService(userRepo)
 	courtService := services.NewCourtService(courtRepo)
-	reservationService := services.NewReservationService(reservationRepo, courtRepo)
+	emailService := services.NewEmailService()                                                     // ← nuevo
+	reservationService := services.NewReservationService(reservationRepo, courtRepo, emailService) // ← inyectado
 	reportService := services.NewReportService(reportRepo)
 
 	authHandler := handlers.NewAuthHandler(authService)
@@ -31,7 +32,6 @@ func main() {
 
 	r := gin.Default()
 
-	// CORS
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:5173"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},

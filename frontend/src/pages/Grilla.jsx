@@ -12,6 +12,15 @@ const HORARIOS = [
   '20:00','21:00','22:00','23:00'
 ]
 
+const TIPOS_CANCHA = ['Todos', '5', '7', '11']
+
+const LABELS_TIPO = {
+  'Todos': 'Todas',
+  '5': 'Fútbol 5',
+  '7': 'Fútbol 7',
+  '11': 'Fútbol 11',
+}
+
 function formatFecha(date) {
   return date.toISOString().split('T')[0]
 }
@@ -30,10 +39,28 @@ export default function Grilla() {
   const [loading, setLoading] = useState(false)
   const [mensaje, setMensaje] = useState('')
   const [reservaSeleccionada, setReservaSeleccionada] = useState(null)
-  const navigate = useNavigate()
 
+  // ── Nuevos estados de filtro ──────────────────────────────────────────────
+  const [filtroDia, setFiltroDia] = useState('hoy')        // 'hoy' | 'mañana' | 'pasado'
+  const [filtroTipo, setFiltroTipo] = useState('Todos')    // 'Todos' | '5' | '7' | '11'
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const navigate = useNavigate()
   const user = JSON.parse(localStorage.getItem('user') || '{}')
   const isAdmin = user.role === 'admin'
+
+  // Canchas filtradas por tipo
+  const canchasFiltradas = filtroTipo === 'Todos'
+    ? canchas
+    : canchas.filter(c => String(c.type) === filtroTipo)
+
+  // Cuando cambia el dropdown de día rápido, actualizamos la fecha
+  useEffect(() => {
+    const hoy = new Date()
+    if (filtroDia === 'hoy')     setFecha(hoy)
+    if (filtroDia === 'mañana')  setFecha(addDays(hoy, 1))
+    if (filtroDia === 'pasado')  setFecha(addDays(hoy, 2))
+  }, [filtroDia])
 
   useEffect(() => {
     getCanchas().then(r => setCanchas(r.data)).catch(() => {})
@@ -58,13 +85,13 @@ export default function Grilla() {
   }
 
   const handleCelda = (cancha, hora) => {
-  const reserva = getReserva(cancha.id, hora)
-  if (reserva) {
-    if (isAdmin) setReservaSeleccionada(reserva)
-    return
+    const reserva = getReserva(cancha.id, hora)
+    if (reserva) {
+      if (isAdmin) setReservaSeleccionada(reserva)
+      return
+    }
+    setSelected({ cancha, slot: { hora } })
   }
-  setSelected({ cancha, slot: { hora } })
-}
 
   const handleConfirmar = async () => {
     if (!selected) return
@@ -129,6 +156,77 @@ export default function Grilla() {
       </motion.div>
 
       <div className="p-6">
+
+        {/* ── Barra de filtros ─────────────────────────────────────────────── */}
+        <motion.div
+          className="flex flex-wrap items-center gap-3 mb-5"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.15 }}
+        >
+          {/* Dropdown fecha rápida */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-white/50 font-medium">Día</span>
+            <div className="flex glass rounded-xl overflow-hidden">
+              {[
+                { key: 'hoy',    label: 'Hoy' },
+                { key: 'mañana', label: 'Mañana' },
+                { key: 'pasado', label: 'Pasado' },
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setFiltroDia(key)}
+                  className={`px-3 py-1.5 text-xs font-medium transition-all ${
+                    filtroDia === key
+                      ? 'bg-green-500/30 text-green-300 border-b-2 border-green-400'
+                      : 'text-white/60 hover:text-white/90 hover:bg-white/10'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Separador */}
+          <div className="w-px h-6 bg-white/10" />
+
+          {/* Filtro tipo de cancha */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-white/50 font-medium">Tipo</span>
+            <div className="flex glass rounded-xl overflow-hidden">
+              {TIPOS_CANCHA.map(tipo => (
+                <button
+                  key={tipo}
+                  onClick={() => setFiltroTipo(tipo)}
+                  className={`px-3 py-1.5 text-xs font-medium transition-all ${
+                    filtroTipo === tipo
+                      ? 'bg-green-500/30 text-green-300 border-b-2 border-green-400'
+                      : 'text-white/60 hover:text-white/90 hover:bg-white/10'
+                  }`}
+                >
+                  {LABELS_TIPO[tipo]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Resumen de resultados */}
+          {filtroTipo !== 'Todos' && (
+            <motion.span
+              className="text-xs text-white/40 ml-1"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              {canchasFiltradas.length === 0
+                ? 'Sin canchas para ese tipo'
+                : `${canchasFiltradas.length} cancha${canchasFiltradas.length > 1 ? 's' : ''}`}
+            </motion.span>
+          )}
+        </motion.div>
+        {/* ─────────────────────────────────────────────────────────────────── */}
+
+        {/* Navegación de fecha manual (flechas) */}
         <motion.div
           className="flex items-center gap-4 mb-6"
           initial={{ opacity: 0 }}
@@ -136,14 +234,20 @@ export default function Grilla() {
           transition={{ delay: 0.2 }}
         >
           <button
-            onClick={() => setFecha(f => addDays(f, -1))}
+            onClick={() => {
+              setFecha(f => addDays(f, -1))
+              setFiltroDia('')   // al navegar manualmente, deseleccionamos el atajo
+            }}
             className="glass px-4 py-2 rounded-xl hover:bg-white/20 transition"
           >←</button>
           <h2 className="text-lg font-semibold capitalize">
             {fecha.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
           </h2>
           <button
-            onClick={() => setFecha(f => addDays(f, 1))}
+            onClick={() => {
+              setFecha(f => addDays(f, 1))
+              setFiltroDia('')
+            }}
             className="glass px-4 py-2 rounded-xl hover:bg-white/20 transition"
           >→</button>
         </motion.div>
@@ -176,59 +280,68 @@ export default function Grilla() {
           </div>
         </div>
 
+        {/* Tabla — usa canchasFiltradas */}
         <motion.div
           className="glass-dark rounded-2xl overflow-x-auto"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-white/10">
-                <th className="p-3 text-left text-white/50 font-medium w-20">Hora</th>
-                {canchas.map(c => (
-                  <th key={c.id} className="p-3 text-center">
-                    <div className="font-semibold text-white">{c.name}</div>
-                    <div className="text-xs text-white/40">${c.price_per_hour}/h</div>
-                  </th>
+          {canchasFiltradas.length === 0 ? (
+            <div className="py-16 text-center text-white/40 text-sm">
+              No hay canchas para el filtro seleccionado.
+            </div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/10">
+                  <th className="p-3 text-left text-white/50 font-medium w-20">Hora</th>
+                  {canchasFiltradas.map(c => (
+                    <th key={c.id} className="p-3 text-center">
+                      <div className="font-semibold text-white">{c.name}</div>
+                      <div className="text-xs text-white/40">
+                        Fútbol {c.type} · ${c.price_per_hour}/h
+                      </div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {HORARIOS.map((hora, i) => (
+                  <motion.tr
+                    key={hora}
+                    className="border-b border-white/5 last:border-0"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 + i * 0.03 }}
+                  >
+                    <td className="p-3 text-white/50 font-medium">{hora}</td>
+                    {canchasFiltradas.map(cancha => {
+                      const reserva = getReserva(cancha.id, hora)
+                      return (
+                        <td key={cancha.id} className="p-2 text-center">
+                          <button
+                            onClick={() => handleCelda(cancha, hora)}
+                            disabled={!!reserva && !isAdmin}
+                            className={`w-full py-2 px-3 rounded-xl text-xs font-medium ${
+                              reserva ? 'cell-ocupado text-red-300' : 'cell-libre text-green-300 cursor-pointer'
+                            }`}
+                          >
+                            {reserva
+                              ? isAdmin
+                                ? reserva.user_name || `${reserva.user_id.slice(0, 6)}...`
+                                : 'Ocupado'
+                              : 'Libre'
+                            }
+                          </button>
+                        </td>
+                      )
+                    })}
+                  </motion.tr>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {HORARIOS.map((hora, i) => (
-                <motion.tr
-                  key={hora}
-                  className="border-b border-white/5 last:border-0"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 + i * 0.03 }}
-                >
-                  <td className="p-3 text-white/50 font-medium">{hora}</td>
-                  {canchas.map(cancha => {
-                    const reserva = getReserva(cancha.id, hora)
-                    return (
-                      <td key={cancha.id} className="p-2 text-center">
-                        <button
-                          onClick={() => handleCelda(cancha, hora)}
-                          disabled={!!reserva && !isAdmin}
-                          className={`w-full py-2 px-3 rounded-xl text-xs font-medium ${
-                            reserva ? 'cell-ocupado text-red-300' : 'cell-libre text-green-300 cursor-pointer'
-                          }`}
-                        >
-                          {reserva
-                            ? isAdmin
-                              ? reserva.user_name || `${reserva.user_id.slice(0, 6)}...`
-                              : 'Ocupado'
-                            : 'Libre'
-                          }
-                        </button>
-                      </td>
-                    )
-                  })}
-                </motion.tr>
-              ))}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          )}
         </motion.div>
 
         {isAdmin && (
