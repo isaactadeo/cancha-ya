@@ -112,3 +112,17 @@ func (r *ReservationRepository) FindByDateWithUser(date time.Time) ([]models.Res
 	}
 	return reservations, nil
 }
+
+// CountActiveByUser cuenta reservas futuras con estado 'reservada' para un usuario.
+// Se usa para limitar el abuso: un cliente no puede tener más de N reservas activas.
+func (r *ReservationRepository) CountActiveByUser(userID string) (int, error) {
+	var count int
+	err := r.db.QueryRow(`
+		SELECT COUNT(*) FROM reservations
+		WHERE user_id = $1
+		  AND status = 'reservada'
+		  AND start_time > NOW()`,
+		userID,
+	).Scan(&count)
+	return count, err
+}
