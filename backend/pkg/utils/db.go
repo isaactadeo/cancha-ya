@@ -10,14 +10,22 @@ import (
 )
 
 func NewDB() *sql.DB {
-	dsn := fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		getEnv("DB_HOST", "localhost"),
-		getEnv("DB_PORT", "5432"),
-		getEnv("DB_USER", "canchauser"),
-		getEnv("DB_PASSWORD", "canchapass"),
-		getEnv("DB_NAME", "canchadb"),
-	)
+	var dsn string
+
+	// Render provee DATABASE_URL como una sola cadena de conexión
+	if url := os.Getenv("DATABASE_URL"); url != "" {
+		dsn = url
+	} else {
+		// Fallback para desarrollo local
+		dsn = fmt.Sprintf(
+			"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+			getEnv("DB_HOST", "localhost"),
+			getEnv("DB_PORT", "5432"),
+			getEnv("DB_USER", "canchauser"),
+			getEnv("DB_PASSWORD", "canchapass"),
+			getEnv("DB_NAME", "canchadb"),
+		)
+	}
 
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {

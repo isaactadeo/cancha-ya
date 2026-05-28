@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/isaactadeo/cancha-ya-api/internal/handlers"
@@ -21,8 +23,8 @@ func main() {
 
 	authService := services.NewAuthService(userRepo)
 	courtService := services.NewCourtService(courtRepo)
-	emailService := services.NewEmailService()                                                     // ← nuevo
-	reservationService := services.NewReservationService(reservationRepo, courtRepo, emailService) // ← inyectado
+	emailService := services.NewEmailService()
+	reservationService := services.NewReservationService(reservationRepo, courtRepo, emailService)
 	reportService := services.NewReportService(reportRepo)
 
 	authHandler := handlers.NewAuthHandler(authService)
@@ -32,8 +34,16 @@ func main() {
 
 	r := gin.Default()
 
+	// Leer el origen del frontend desde variable de entorno
+	// En desarrollo: http://localhost:5173
+	// En producción: la URL de Vercel
+	frontendURL := os.Getenv("FRONTEND_URL")
+	if frontendURL == "" {
+		frontendURL = "http://localhost:5173"
+	}
+
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"},
+		AllowOrigins:     []string{frontendURL},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		AllowCredentials: true,
@@ -69,5 +79,10 @@ func main() {
 		}
 	}
 
-	r.Run(":8080")
+	// Render asigna el puerto via variable de entorno PORT
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	r.Run(":" + port)
 }

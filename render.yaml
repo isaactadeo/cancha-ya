@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: canchaya-api
+    runtime: go
+    rootDir: backend
+    buildCommand: go build -o server ./cmd/api/main.go
+    startCommand: ./server
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        sync: false        # lo cargás a mano después con la URL de Vercel
+      - key: RESEND_API_KEY
+        sync: false        # opcional, para los mails
+      - key: DATABASE_URL
+        fromDatabase:
+          name: canchaya-db
+          property: connectionString
+
+databases:
+  - name: canchaya-db
+    databaseName: canchadb
+    user: canchauser
+    plan: free
