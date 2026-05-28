@@ -2,39 +2,127 @@ package repositories
 
 import (
 	"database/sql"
+	"time"
 
 	"github.com/isaactadeo/cancha-ya-api/internal/models"
 )
 
-type UserRepository struct {
+type ReservationRepository struct {
 	db *sql.DB
 }
 
-func NewUserRepository(db *sql.DB) *UserRepository {
-	return &UserRepository{db: db}
+func NewReservationRepository(db *sql.DB) *ReservationRepository {
+	return &ReservationRepository{db: db}
 }
 
-func (r *UserRepository) Create(u *models.User) error {
+func (r *ReservationRepository) Create(res *models.Reservation) error {
 	query := `
-        INSERT INTO users (full_name, email, phone, password_hash, role)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING id, created_at`
+		INSERT INTO reservations (user_id, court_id, start_time, end_time, total_price, status)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id, created_at`
 	return r.db.QueryRow(query,
-		u.FullName, u.Email, u.Phone, u.PasswordHash, u.Role,
-	).Scan(&u.ID, &u.CreatedAt)
+		res.UserID, res.CourtID, res.StartTime, res.EndTime, res.TotalPrice, res.Status,
+	).Scan(&res.ID, &res.CreatedAt)
 }
 
-func (r *UserRepository) FindByEmail(email string) (*models.User, error) {
-	u := &models.User{}
-	query := `
-        SELECT id, full_name, email, phone, password_hash, role, created_at
-        FROM users WHERE email = $1`
-	err := r.db.QueryRow(query, email).Scan(
-		&u.ID, &u.FullName, &u.Email, &u.Phone,
-		&u.PasswordHash, &u.Role, &u.CreatedAt,
-	)
+func (r *ReservationRepository) FindByUser(userID string) ([]models.Reservation, error) {
+	rows, err := r.db.Query(`
+		SELECT id, user_id, court_id, start_time, end_time, total_price, status, created_at
+		FROM reservations WHERE user_id = $1 ORDER BY start_time DESC`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var reservations []models.Reservation
+	for rows.Next() {
+		var res models.Reservation
+		if err := rows.Scan(&res.ID, &res.UserID, &res.CourtID, &res.StartTime,
+			&res.EndTime, &res.TotalPrice, &res.Status, &res.CreatedAt); err != nil {
+			return nil, err
+		}
+		reservations = append(reservations, res)
+	}
+	return reservations, nil
+}
+
+func (r *ReservationRepository) FindByDate(date time.Time) ([]models.Reservation, error) {
+	rows, err := r.db.Query(`
+		SELECT id, user_id, court_id, start_time, end_time, total_price, status, created_at
+		FROM reservations
+		WHERE DATE(start_time) = DATE($1) AND status = 'reservada'
+		ORDER BY start_time`, date)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var reservations []models.Reservation
+	for rows.Next() {
+		var res models.Reservation
+		if err := rows.Scan(&res.ID, &res.UserID, &res.CourtID, &res.StartTime,
+			&res.EndTime, &res.TotalPrice, &res.Status, &res.CreatedAt); err != nil {
+			return nil, err
+		}
+		reservations = append(reservations, res)
+	}
+	return reservations, nil
+}
+
+func (r *ReservationRepository) FindByID(id string) (*models.Reservation, error) {
+	res := &models.Reservation{}
+	err := r.db.QueryRow(`
+		SELECT id, user_id, court_id, start_time, end_time, total_price, status, created_at
+		FROM reservations WHERE id = $1`, id).
+		Scan(&res.ID, &res.UserID, &res.CourtID, &res.StartTime,
+			&res.EndTime, &res.TotalPrice, &res.Status, &res.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
-	return u, err
+	return res, err
+}
+
+func (r *ReservationRepository) UpdateStatus(id string, status models.ReservationStatus) error {
+	_, err := r.db.Exec(`UPDATE reservations SET status = $1 WHERE id = $2`, status, id)
+	return err
+}
+
+func (r *ReservationRepository) FindByDateWithUser(date time.Time) ([]models.ReservationWithUser, error) {
+	rows, err := r.db.Query(`
+        SELECT r.id, r.user_id, r.court_id, r.start_time, r.end_time, 
+               r.total_price, r.status, r.created_at, u.full_name, u.email, u.phone
+        FROM reservations r
+        JOIN users u ON r.user_id = u.id
+        WHERE DATE(r.start_time) = DATE($1) AND r.status = 'reservada'
+        ORDER BY r.start_time`, date)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var reservations []models.ReservationWithUser
+	for rows.Next() {
+		var res models.ReservationWithUser
+		if err := rows.Scan(&res.ID, &res.UserID, &res.CourtID, &res.StartTime,
+			&res.EndTime, &res.TotalPrice, &res.Status, &res.CreatedAt,
+			&res.UserName, &res.UserEmail, &res.UserPhone); err != nil {
+			return nil, err
+		}
+		reservations = append(reservations, res)
+	}
+	return reservations, nil
+}
+
+// CountActiveByUser cuenta reservas futuras con estado 'reservada' para un usuario.
+// Se usa para limitar el abuso: un cliente no puede tener más de N reservas activas.
+func (r *ReservationRepository) CountActiveByUser(userID string) (int, error) {
+	var count int
+	err := r.db.QueryRow(`
+		SELECT COUNT(*) FROM reservations
+		WHERE user_id = $1
+		  AND status = 'reservada'
+		  AND start_time > NOW()`,
+		userID,
+	).Scan(&count)
+	return count, err
 }

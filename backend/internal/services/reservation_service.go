@@ -10,6 +10,8 @@ import (
 	"github.com/isaactadeo/cancha-ya-api/internal/repositories"
 )
 
+const maxReservasActivas = 3 // máximo de reservas activas por usuario
+
 type ReservationService struct {
 	reservationRepo *repositories.ReservationRepository
 	courtRepo       *repositories.CourtRepository
@@ -28,12 +30,12 @@ func NewReservationService(
 	}
 }
 
-// CreateParams agrupa los datos que el handler le pasa al service
 type CreateParams struct {
 	Req       *models.ReservationRequest
 	UserID    string
 	UserEmail string
 	UserName  string
+	UserRole  string
 }
 
 func (s *ReservationService) Create(params CreateParams) (*models.Reservation, error) {
@@ -66,6 +68,17 @@ func (s *ReservationService) Create(params CreateParams) (*models.Reservation, e
 		return nil, errors.New("la reserva excede el horario permitido")
 	}
 
+	// Límite de reservas activas — los admins no tienen límite
+	if params.UserRole != "admin" {
+		activas, err := s.reservationRepo.CountActiveByUser(params.UserID)
+		if err != nil {
+			return nil, err
+		}
+		if activas >= maxReservasActivas {
+			return nil, fmt.Errorf("ya tenés %d reservas activas, cancelá alguna antes de hacer una nueva", maxReservasActivas)
+		}
+	}
+
 	price := calcularPrecio(court.PricePerHour, startTime, params.Req.Duration)
 
 	reservation := &models.Reservation{
@@ -86,7 +99,6 @@ func (s *ReservationService) Create(params CreateParams) (*models.Reservation, e
 
 	fmt.Printf("[email] Preparando envío a: '%s', nombre: '%s'\n", params.UserEmail, params.UserName)
 
-	// Mail asíncrono — no bloquea la respuesta al cliente
 	go func() {
 		err := s.emailService.SendReservationConfirmation(ReservationEmailData{
 			UserName:   params.UserName,

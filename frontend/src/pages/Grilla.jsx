@@ -37,24 +37,20 @@ export default function Grilla() {
   const [fecha, setFecha] = useState(new Date())
   const [selected, setSelected] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [loadingCanchas, setLoadingCanchas] = useState(true)
   const [mensaje, setMensaje] = useState('')
   const [reservaSeleccionada, setReservaSeleccionada] = useState(null)
-
-  // ── Nuevos estados de filtro ──────────────────────────────────────────────
-  const [filtroDia, setFiltroDia] = useState('hoy')        // 'hoy' | 'mañana' | 'pasado'
-  const [filtroTipo, setFiltroTipo] = useState('Todos')    // 'Todos' | '5' | '7' | '11'
-  // ─────────────────────────────────────────────────────────────────────────
+  const [filtroDia, setFiltroDia] = useState('hoy')
+  const [filtroTipo, setFiltroTipo] = useState('Todos')
 
   const navigate = useNavigate()
   const user = JSON.parse(localStorage.getItem('user') || '{}')
   const isAdmin = user.role === 'admin'
 
-  // Canchas filtradas por tipo
   const canchasFiltradas = filtroTipo === 'Todos'
     ? canchas
     : canchas.filter(c => String(c.type) === filtroTipo)
 
-  // Cuando cambia el dropdown de día rápido, actualizamos la fecha
   useEffect(() => {
     const hoy = new Date()
     if (filtroDia === 'hoy')     setFecha(hoy)
@@ -63,7 +59,11 @@ export default function Grilla() {
   }, [filtroDia])
 
   useEffect(() => {
-    getCanchas().then(r => setCanchas(r.data)).catch(() => {})
+    setLoadingCanchas(true)
+    getCanchas()
+      .then(r => setCanchas(r.data))
+      .catch(() => {})
+      .finally(() => setLoadingCanchas(false))
   }, [])
 
   useEffect(() => {
@@ -122,6 +122,56 @@ export default function Grilla() {
     navigate('/')
   }
 
+  // ── Estado vacío: no hay canchas cargadas ──────────────────────────────────
+  if (!loadingCanchas && canchas.length === 0) {
+    return (
+      <div className="min-h-screen text-white">
+        <CanchaBackground />
+        <motion.div
+          className="header-glass px-6 py-3 flex items-center justify-between"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <span className="logo-text">Cancha<span>YA</span></span>
+          <button onClick={logout} className="nav-btn nav-btn-danger">Salir</button>
+        </motion.div>
+
+        <div className="flex items-center justify-center min-h-[80vh]">
+          <motion.div
+            className="glass-dark rounded-3xl p-12 text-center max-w-md mx-4"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <div className="text-6xl mb-4">⚽</div>
+            {isAdmin ? (
+              <>
+                <h2 className="text-xl font-bold text-white mb-2">No hay canchas cargadas</h2>
+                <p className="text-white/50 text-sm mb-6">
+                  Creá las canchas desde el panel admin para que los jugadores puedan reservar.
+                </p>
+                <button
+                  onClick={() => navigate('/admin')}
+                  className="bg-green-500 hover:bg-green-400 text-white font-semibold px-6 py-3 rounded-2xl transition"
+                >
+                  Ir al panel admin →
+                </button>
+              </>
+            ) : (
+              <>
+                <h2 className="text-xl font-bold text-white mb-2">No hay canchas disponibles</h2>
+                <p className="text-white/50 text-sm">
+                  Todavía no se cargaron canchas. Contactá al club para más información.
+                </p>
+              </>
+            )}
+          </motion.div>
+        </div>
+      </div>
+    )
+  }
+  // ──────────────────────────────────────────────────────────────────────────
+
   return (
     <div className="min-h-screen text-white">
       <CanchaBackground />
@@ -157,14 +207,13 @@ export default function Grilla() {
 
       <div className="p-6">
 
-        {/* ── Barra de filtros ─────────────────────────────────────────────── */}
+        {/* Filtros */}
         <motion.div
           className="flex flex-wrap items-center gap-3 mb-5"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.15 }}
         >
-          {/* Dropdown fecha rápida */}
           <div className="flex items-center gap-2">
             <span className="text-xs text-white/50 font-medium">Día</span>
             <div className="flex glass rounded-xl overflow-hidden">
@@ -188,10 +237,8 @@ export default function Grilla() {
             </div>
           </div>
 
-          {/* Separador */}
           <div className="w-px h-6 bg-white/10" />
 
-          {/* Filtro tipo de cancha */}
           <div className="flex items-center gap-2">
             <span className="text-xs text-white/50 font-medium">Tipo</span>
             <div className="flex glass rounded-xl overflow-hidden">
@@ -211,22 +258,16 @@ export default function Grilla() {
             </div>
           </div>
 
-          {/* Resumen de resultados */}
           {filtroTipo !== 'Todos' && (
-            <motion.span
-              className="text-xs text-white/40 ml-1"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            >
+            <motion.span className="text-xs text-white/40 ml-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               {canchasFiltradas.length === 0
                 ? 'Sin canchas para ese tipo'
                 : `${canchasFiltradas.length} cancha${canchasFiltradas.length > 1 ? 's' : ''}`}
             </motion.span>
           )}
         </motion.div>
-        {/* ─────────────────────────────────────────────────────────────────── */}
 
-        {/* Navegación de fecha manual (flechas) */}
+        {/* Navegación de fecha */}
         <motion.div
           className="flex items-center gap-4 mb-6"
           initial={{ opacity: 0 }}
@@ -234,20 +275,14 @@ export default function Grilla() {
           transition={{ delay: 0.2 }}
         >
           <button
-            onClick={() => {
-              setFecha(f => addDays(f, -1))
-              setFiltroDia('')   // al navegar manualmente, deseleccionamos el atajo
-            }}
+            onClick={() => { setFecha(f => addDays(f, -1)); setFiltroDia('') }}
             className="glass px-4 py-2 rounded-xl hover:bg-white/20 transition"
           >←</button>
           <h2 className="text-lg font-semibold capitalize">
             {fecha.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
           </h2>
           <button
-            onClick={() => {
-              setFecha(f => addDays(f, 1))
-              setFiltroDia('')
-            }}
+            onClick={() => { setFecha(f => addDays(f, 1)); setFiltroDia('') }}
             className="glass px-4 py-2 rounded-xl hover:bg-white/20 transition"
           >→</button>
         </motion.div>
@@ -280,7 +315,7 @@ export default function Grilla() {
           </div>
         </div>
 
-        {/* Tabla — usa canchasFiltradas */}
+        {/* Tabla */}
         <motion.div
           className="glass-dark rounded-2xl overflow-x-auto"
           initial={{ opacity: 0, y: 20 }}
@@ -296,19 +331,10 @@ export default function Grilla() {
             const COL_CANCHA = 160
             const tableW = COL_HORA + COL_CANCHA * canchasFiltradas.length
             return (
-              <table
-                className="text-sm"
-                style={{
-                  width: '100%',
-                  minWidth: `${tableW}px`,
-                  tableLayout: 'fixed',
-                }}
-              >
+              <table className="text-sm" style={{ width: '100%', minWidth: `${tableW}px`, tableLayout: 'fixed' }}>
                 <colgroup>
                   <col style={{ width: `${COL_HORA}px`, minWidth: `${COL_HORA}px`, maxWidth: `${COL_HORA}px` }} />
-                  {canchasFiltradas.map(c => (
-                    <col key={c.id} />
-                  ))}
+                  {canchasFiltradas.map(c => <col key={c.id} />)}
                 </colgroup>
                 <thead>
                   <tr className="border-b border-white/10">
@@ -316,9 +342,7 @@ export default function Grilla() {
                     {canchasFiltradas.map(c => (
                       <th key={c.id} className="p-3 text-center">
                         <div className="font-semibold text-white">{c.name}</div>
-                        <div className="text-xs text-white/40">
-                          Fútbol {c.type} · ${c.price_per_hour}/h
-                        </div>
+                        <div className="text-xs text-white/40">Fútbol {c.type} · ${c.price_per_hour}/h</div>
                       </th>
                     ))}
                   </tr>
@@ -404,4 +428,4 @@ export default function Grilla() {
       />
     </div>
   )
-} 
+}
