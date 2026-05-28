@@ -43,7 +43,7 @@ func (s *EmailService) SendReservationConfirmation(data ReservationEmailData) er
 
 	payload := map[string]interface{}{
 		"from":    "CanchaYA <onboarding@resend.dev>",
-		"to":      []string{"tadeisaac7@gmail.com"},
+		"to":      []string{data.UserEmail},
 		"subject": fmt.Sprintf("✅ Reserva confirmada — %s %s", fecha, horaInicio),
 		"html":    html,
 	}

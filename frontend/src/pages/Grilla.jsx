@@ -291,57 +291,75 @@ export default function Grilla() {
             <div className="py-16 text-center text-white/40 text-sm">
               No hay canchas para el filtro seleccionado.
             </div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/10">
-                  <th className="p-3 text-left text-white/50 font-medium w-20">Hora</th>
+          ) : (() => {
+            const COL_HORA = 72
+            const COL_CANCHA = 160
+            const tableW = COL_HORA + COL_CANCHA * canchasFiltradas.length
+            return (
+              <table
+                className="text-sm"
+                style={{
+                  width: '100%',
+                  minWidth: `${tableW}px`,
+                  tableLayout: 'fixed',
+                }}
+              >
+                <colgroup>
+                  <col style={{ width: `${COL_HORA}px`, minWidth: `${COL_HORA}px`, maxWidth: `${COL_HORA}px` }} />
                   {canchasFiltradas.map(c => (
-                    <th key={c.id} className="p-3 text-center">
-                      <div className="font-semibold text-white">{c.name}</div>
-                      <div className="text-xs text-white/40">
-                        Fútbol {c.type} · ${c.price_per_hour}/h
-                      </div>
-                    </th>
+                    <col key={c.id} />
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {HORARIOS.map((hora, i) => (
-                  <motion.tr
-                    key={hora}
-                    className="border-b border-white/5 last:border-0"
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 + i * 0.03 }}
-                  >
-                    <td className="p-3 text-white/50 font-medium">{hora}</td>
-                    {canchasFiltradas.map(cancha => {
-                      const reserva = getReserva(cancha.id, hora)
-                      return (
-                        <td key={cancha.id} className="p-2 text-center">
-                          <button
-                            onClick={() => handleCelda(cancha, hora)}
-                            disabled={!!reserva && !isAdmin}
-                            className={`w-full py-2 px-3 rounded-xl text-xs font-medium ${
-                              reserva ? 'cell-ocupado text-red-300' : 'cell-libre text-green-300 cursor-pointer'
-                            }`}
-                          >
-                            {reserva
-                              ? isAdmin
-                                ? reserva.user_name || `${reserva.user_id.slice(0, 6)}...`
-                                : 'Ocupado'
-                              : 'Libre'
-                            }
-                          </button>
-                        </td>
-                      )
-                    })}
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+                </colgroup>
+                <thead>
+                  <tr className="border-b border-white/10">
+                    <th className="p-3 text-left text-white/50 font-medium">Hora</th>
+                    {canchasFiltradas.map(c => (
+                      <th key={c.id} className="p-3 text-center">
+                        <div className="font-semibold text-white">{c.name}</div>
+                        <div className="text-xs text-white/40">
+                          Fútbol {c.type} · ${c.price_per_hour}/h
+                        </div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {HORARIOS.map((hora, i) => (
+                    <motion.tr
+                      key={hora}
+                      className="border-b border-white/5 last:border-0"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.3 + i * 0.03 }}
+                    >
+                      <td className="p-3 text-white/50 font-medium">{hora}</td>
+                      {canchasFiltradas.map(cancha => {
+                        const reserva = getReserva(cancha.id, hora)
+                        return (
+                          <td key={cancha.id} className="p-2 text-center">
+                            <button
+                              onClick={() => handleCelda(cancha, hora)}
+                              disabled={!!reserva && !isAdmin}
+                              className={`w-full py-2 px-3 rounded-xl text-xs font-medium ${
+                                reserva ? 'cell-ocupado text-red-300' : 'cell-libre text-green-300 cursor-pointer'
+                              }`}
+                            >
+                              {reserva
+                                ? isAdmin
+                                  ? reserva.user_name || `${reserva.user_id.slice(0, 6)}...`
+                                  : 'Ocupado'
+                                : 'Libre'
+                              }
+                            </button>
+                          </td>
+                        )
+                      })}
+                    </motion.tr>
+                  ))}
+                </tbody>
+              </table>
+            )
+          })()}
         </motion.div>
 
         {isAdmin && (
