@@ -1,4 +1,5 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "btree_gist";
 
 CREATE TABLE users (
     id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -29,7 +30,6 @@ CREATE TABLE reservations (
     status      VARCHAR(20) NOT NULL DEFAULT 'reservada'
                     CHECK (status IN ('reservada', 'cancelada', 'jugada')),
     created_at  TIMESTAMP NOT NULL DEFAULT NOW(),
-    -- Esto es lo importante: la DB misma rechaza solapamientos
     CONSTRAINT no_overlap EXCLUDE USING gist (
         court_id WITH =,
         tsrange(start_time, end_time) WITH &&
