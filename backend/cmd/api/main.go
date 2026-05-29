@@ -69,6 +69,7 @@ func main() {
 		admin := api.Group("/admin", middlewares.RoleRequired("admin"))
 		{
 			admin.GET("/usuarios", authHandler.ListUsers)
+			admin.PUT("/usuarios/:id/bloquear", authHandler.BlockUser)
 			admin.GET("/reportes/ingresos", reportHandler.Ingresos)
 			admin.GET("/reportes/ocupacion", reportHandler.Ocupacion)
 			admin.GET("/reservas", reservationHandler.GetByDateWithUser)

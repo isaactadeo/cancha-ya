@@ -10,7 +10,7 @@ import (
 	"github.com/isaactadeo/cancha-ya-api/internal/repositories"
 )
 
-const maxReservasActivas = 3 // máximo de reservas activas por usuario
+const maxReservasActivas = 3
 
 type ReservationService struct {
 	reservationRepo *repositories.ReservationRepository
@@ -68,7 +68,7 @@ func (s *ReservationService) Create(params CreateParams) (*models.Reservation, e
 		return nil, errors.New("la reserva excede el horario permitido")
 	}
 
-	// Límite de reservas activas — los admins no tienen límite
+	// Límite de reservas activas — admins no tienen límite
 	if params.UserRole != "admin" {
 		activas, err := s.reservationRepo.CountActiveByUser(params.UserID)
 		if err != nil {
@@ -96,8 +96,6 @@ func (s *ReservationService) Create(params CreateParams) (*models.Reservation, e
 		}
 		return nil, err
 	}
-
-	fmt.Printf("[email] Preparando envío a: '%s', nombre: '%s'\n", params.UserEmail, params.UserName)
 
 	go func() {
 		err := s.emailService.SendReservationConfirmation(ReservationEmailData{
@@ -134,7 +132,9 @@ func (s *ReservationService) Cancel(reservationID string, userID string, userRol
 		return errors.New("la reserva ya está cancelada")
 	}
 
-	if time.Now().After(res.StartTime) {
+	// Solo los clientes tienen restricción de cancelar turnos ya iniciados
+	// El admin puede cancelar cualquier reserva en cualquier momento
+	if userRole != "admin" && time.Now().After(res.StartTime) {
 		return errors.New("no se puede cancelar un turno ya iniciado")
 	}
 

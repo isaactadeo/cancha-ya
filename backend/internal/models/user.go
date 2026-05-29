@@ -15,7 +15,8 @@ type User struct {
 	FullName     string    `json:"full_name"`
 	Email        string    `json:"email"`
 	Phone        string    `json:"phone,omitempty"`
-	PasswordHash string    `json:"-"` // nunca sale en JSON
+	PasswordHash string    `json:"-"`
 	Role         Role      `json:"role"`
+	IsBlocked    bool      `json:"is_blocked"`
 	CreatedAt    time.Time `json:"created_at"`
 }

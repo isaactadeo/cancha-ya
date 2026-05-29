@@ -54,5 +54,26 @@ func (h *AuthHandler) Me(c *gin.Context) {
 }
 
 func (h *AuthHandler) ListUsers(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "lista de usuarios — solo admin"})
+	users, err := h.authService.ListUsers()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, users)
+}
+
+func (h *AuthHandler) BlockUser(c *gin.Context) {
+	userID := c.Param("id")
+	var body struct {
+		Blocked bool `json:"blocked"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := h.authService.SetBlocked(userID, body.Blocked); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "usuario actualizado"})
 }

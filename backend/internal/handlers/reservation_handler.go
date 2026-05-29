@@ -23,16 +23,17 @@ func (h *ReservationHandler) Create(c *gin.Context) {
 		return
 	}
 
-	// Extraer datos del JWT inyectados por AuthRequired
 	userID, _ := c.Get("user_id")
 	userEmail, _ := c.Get("user_email")
 	userFullName, _ := c.Get("user_full_name")
+	userRole, _ := c.Get("user_role")
 
 	res, err := h.reservationService.Create(services.CreateParams{
 		Req:       &req,
 		UserID:    toString(userID),
 		UserEmail: toString(userEmail),
 		UserName:  toString(userFullName),
+		UserRole:  toString(userRole),
 	})
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -91,7 +92,6 @@ func (h *ReservationHandler) GetByDateWithUser(c *gin.Context) {
 	c.JSON(http.StatusOK, reservations)
 }
 
-// toString convierte interface{} a string de forma segura
 func toString(v interface{}) string {
 	if v == nil {
 		return ""

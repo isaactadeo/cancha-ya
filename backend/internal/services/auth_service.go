@@ -62,6 +62,10 @@ func (s *AuthService) Login(req *models.LoginRequest) (*models.AuthResponse, err
 		return nil, errors.New("credenciales inválidas")
 	}
 
+	if user.IsBlocked {
+		return nil, errors.New("tu cuenta está suspendida, contactá al club")
+	}
+
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
 		return nil, errors.New("credenciales inválidas")
 	}
@@ -74,6 +78,14 @@ func (s *AuthService) Login(req *models.LoginRequest) (*models.AuthResponse, err
 	return &models.AuthResponse{Token: token, User: *user}, nil
 }
 
+func (s *AuthService) ListUsers() ([]models.User, error) {
+	return s.userRepo.FindAll()
+}
+
+func (s *AuthService) SetBlocked(userID string, blocked bool) error {
+	return s.userRepo.SetBlocked(userID, blocked)
+}
+
 func generateToken(user *models.User) (string, error) {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
@@ -83,8 +95,8 @@ func generateToken(user *models.User) (string, error) {
 	claims := jwt.MapClaims{
 		"sub":       user.ID,
 		"role":      user.Role,
-		"email":     user.Email,    // ← nuevo
-		"full_name": user.FullName, // ← nuevo
+		"email":     user.Email,
+		"full_name": user.FullName,
 		"exp":       time.Now().Add(72 * time.Hour).Unix(),
 	}
 
