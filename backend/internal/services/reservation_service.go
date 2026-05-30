@@ -12,6 +12,14 @@ import (
 
 const maxReservasActivas = 3
 
+func zonaArgentina() *time.Location {
+	loc, err := time.LoadLocation("America/Argentina/Buenos_Aires")
+	if err != nil {
+		loc = time.FixedZone("ART", -3*60*60)
+	}
+	return loc
+}
+
 type ReservationService struct {
 	reservationRepo *repositories.ReservationRepository
 	courtRepo       *repositories.CourtRepository
@@ -47,12 +55,16 @@ func (s *ReservationService) Create(params CreateParams) (*models.Reservation, e
 		return nil, errors.New("cancha no disponible")
 	}
 
-	startTime, err := time.Parse("2006-01-02T15:04:05", params.Req.StartTime)
+	loc := zonaArgentina()
+
+	startTime, err := time.ParseInLocation("2006-01-02T15:04:05", params.Req.StartTime, loc)
 	if err != nil {
 		return nil, errors.New("formato de fecha inválido, usá: 2006-01-02T15:04:05")
 	}
 
-	if startTime.Before(time.Now()) {
+	ahora := time.Now().In(loc)
+
+	if startTime.Before(ahora) {
 		return nil, errors.New("no podés reservar en el pasado")
 	}
 
@@ -64,11 +76,10 @@ func (s *ReservationService) Create(params CreateParams) (*models.Reservation, e
 	endTime := startTime.Add(time.Duration(params.Req.Duration) * time.Minute)
 	if endTime.Hour() == 0 && endTime.Minute() == 0 {
 		// medianoche exacta está bien
-	} else if endTime.After(startTime.Truncate(24 * time.Hour).Add(24 * time.Hour)) {
+	} else if endTime.After(startTime.Truncate(24*time.Hour).Add(24*time.Hour)) {
 		return nil, errors.New("la reserva excede el horario permitido")
 	}
 
-	// Límite de reservas activas — admins no tienen límite
 	if params.UserRole != "admin" {
 		activas, err := s.reservationRepo.CountActiveByUser(params.UserID)
 		if err != nil {
@@ -132,8 +143,6 @@ func (s *ReservationService) Cancel(reservationID string, userID string, userRol
 		return errors.New("la reserva ya está cancelada")
 	}
 
-	// Solo los clientes tienen restricción de cancelar turnos ya iniciados
-	// El admin puede cancelar cualquier reserva en cualquier momento
 	if userRole != "admin" && time.Now().After(res.StartTime) {
 		return errors.New("no se puede cancelar un turno ya iniciado")
 	}
@@ -163,15 +172,12 @@ func (s *ReservationService) GetByDateWithUser(dateStr string) ([]models.Reserva
 
 func calcularPrecio(precioBase float64, start time.Time, duracionMin int) float64 {
 	precio := precioBase * float64(duracionMin) / 60.0
-
 	if start.Weekday() == time.Saturday || start.Weekday() == time.Sunday {
 		precio *= 1.20
 	}
-
 	if start.Hour() >= 20 {
 		precio *= 1.15
 	}
-
 	return math.Round(precio*100) / 100
 }
 
