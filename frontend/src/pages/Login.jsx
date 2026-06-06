@@ -95,12 +95,12 @@ export default function Login() {
       >
         <div
           style={{
-            background: 'rgba(10, 10, 10, 0.82)',
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
-            border: '1px solid rgba(255,255,255,0.07)',
+            background: 'rgba(255, 255, 255, 0.03)',
+            backdropFilter: 'blur(40px) saturate(1.4)',
+            WebkitBackdropFilter: 'blur(40px) saturate(1.4)',
+            border: '1px solid rgba(255,255,255,0.09)',
             borderRadius: '16px',
-            boxShadow: '0 0 0 1px rgba(255,255,255,0.03), 0 24px 64px rgba(0,0,0,0.7)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.07), 0 32px 80px rgba(0,0,0,0.5)',
           }}
         >
           {/* Header */}

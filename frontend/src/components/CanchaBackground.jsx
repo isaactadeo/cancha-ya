@@ -194,8 +194,8 @@ function BackgroundBall({ isLogin }) {
 function Scene({ isLogin }) {
   return (
     <>
-      <ambientLight intensity={0.3} />
-      <directionalLight position={[5, 8, 6]} intensity={0.8} color="#ffffff" />
+      <ambientLight intensity={0.5} />
+      <directionalLight position={[5, 8, 6]} intensity={1.2} color="#ffffff" />
       <directionalLight position={[-4, -3, -2]} intensity={0.2} color="#aaaaff" />
       <pointLight position={[3, 3, 4]} intensity={0.4} color="#ffffff" />
       <BackgroundBall isLogin={isLogin} />
@@ -230,11 +230,11 @@ export default function CanchaBackground() {
       };
 
   const cameraProps = isLogin
-    ? { position: [0, 0, 3.2], fov: 50 }
+    ? { position: [0, 0, 5.5], fov: 42 }
     : { position: [0, 0, 2.8], fov: 55 };
 
   // Escala del icosaedro
-  const scale = isLogin ? 1.8 : 1.4;
+  const scale = isLogin ? 1.1 : 1.4;
 
   return (
     <>
