@@ -1,12 +1,10 @@
 // src/components/CanchaBackground.jsx
 import { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
 import { useLocation } from 'react-router-dom';
 import * as THREE from 'three';
 
-// ─────────────────────────────────────────────────────────────
-// Misma geometría del icosaedro truncado del FuturisticBall
-// ─────────────────────────────────────────────────────────────
 function buildTruncatedIcosahedron(radius = 1) {
   const φ = (1 + Math.sqrt(5)) / 2;
   const rawVerts = [];
@@ -106,12 +104,12 @@ function buildTruncatedIcosahedron(radius = 1) {
     geo.setAttribute('normal', new THREE.Float32BufferAttribute(normals_, 3));
     geo.scale(radius, radius, radius);
 
+    // Caras visibles con metalness para que brillen bien
     const mat = new THREE.MeshStandardMaterial({
-      color: isPentagon ? 0x111111 : 0x1a1a1a,
-      roughness: isPentagon ? 0.6 : 0.4,
-      metalness: 0.3,
-      emissive: isPentagon ? 0x000000 : 0x0a0a0a,
-      emissiveIntensity: isPentagon ? 0 : 0.1,
+      color: isPentagon ? 0x111111 : 0x1c1c1c,
+      roughness: isPentagon ? 0.55 : 0.35,
+      metalness: isPentagon ? 0.4 : 0.6,
+      emissive: isPentagon ? 0x000000 : 0x050505,
     });
 
     groups.push({ geo, mat });
@@ -129,42 +127,32 @@ function buildTruncatedIcosahedron(radius = 1) {
   return { groups, edges, verts, radius };
 }
 
-// ─────────────────────────────────────────────────────────────
-// El icosaedro que gira — versión fondo (grande, oscuro, sutil)
-// ─────────────────────────────────────────────────────────────
-function BackgroundBall({ isLogin }) {
+// El icosaedro que auto-rota lento cuando el usuario no interactúa
+function IcosahedronMesh({ isLogin }) {
   const groupRef = useRef();
+  const isDragging = useRef(false);
+
   const { groups, edges, verts, radius } = useMemo(() => buildTruncatedIcosahedron(1), []);
 
   const edgeMat = useMemo(() =>
     new THREE.MeshStandardMaterial({
-      color: 0x2a2a2a,
-      roughness: 0.5,
-      metalness: 0.2,
+      color: 0x333333,
+      roughness: 0.4,
+      metalness: 0.3,
     }), []);
 
-  // En login: gira más rápido y está centrado
-  // En otras páginas: gira muy lento, desplazado
   useFrame((state) => {
     if (!groupRef.current) return;
-    const t = state.clock.getElapsedTime();
-    if (isLogin) {
-      groupRef.current.rotation.y = t * 0.12;
-      groupRef.current.rotation.x = t * 0.05;
-    } else {
-      groupRef.current.rotation.y = t * 0.06;
-      groupRef.current.rotation.x = t * 0.025;
-    }
+    // Auto-rotación suave siempre (OrbitControls no bloquea esto)
+    groupRef.current.rotation.y += isLogin ? 0.003 : 0.0015;
+    groupRef.current.rotation.x += isLogin ? 0.001 : 0.0005;
   });
 
   return (
     <group ref={groupRef}>
-      {/* Caras */}
       {groups.map(({ geo, mat }, idx) => (
         <mesh key={idx} geometry={geo} material={mat} />
       ))}
-
-      {/* Aristas */}
       {edges.map(([i, j], idx) => {
         const a = verts[i].clone().multiplyScalar(radius);
         const b = verts[j].clone().multiplyScalar(radius);
@@ -179,11 +167,11 @@ function BackgroundBall({ isLogin }) {
         return (
           <mesh
             key={`e${idx}`}
-            position={mid.clone().addScaledVector(nrm, 0.01)}
+            position={mid.clone().addScaledVector(nrm, 0.008)}
             quaternion={q}
             material={edgeMat}
           >
-            <cylinderGeometry args={[0.006, 0.006, len, 4, 1]} />
+            <cylinderGeometry args={[0.008, 0.008, len, 5, 1]} />
           </mesh>
         );
       })}
@@ -194,11 +182,18 @@ function BackgroundBall({ isLogin }) {
 function Scene({ isLogin }) {
   return (
     <>
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[5, 8, 6]} intensity={1.2} color="#ffffff" />
-      <directionalLight position={[-4, -3, -2]} intensity={0.2} color="#aaaaff" />
-      <pointLight position={[3, 3, 4]} intensity={0.4} color="#ffffff" />
-      <BackgroundBall isLogin={isLogin} />
+      <ambientLight intensity={0.6} />
+      <directionalLight position={[6, 8, 5]} intensity={1.5} color="#ffffff" />
+      <directionalLight position={[-5, -4, -3]} intensity={0.3} color="#8888cc" />
+      <pointLight position={[0, 0, 4]} intensity={0.5} color="#ffffff" />
+      <IcosahedronMesh isLogin={isLogin} />
+      <OrbitControls
+        enableZoom={false}
+        enablePan={false}
+        rotateSpeed={0.6}
+        dampingFactor={0.08}
+        enableDamping={true}
+      />
     </>
   );
 }
@@ -207,89 +202,57 @@ export default function CanchaBackground() {
   const { pathname } = useLocation();
   const isLogin = pathname === '/' || pathname === '/login';
 
-  // En login: enorme, centrado, protagonista
-  // En otras páginas: grande pero discreto, esquina derecha
-  const canvasStyle = isLogin
-    ? {
-        position: 'fixed',
-        inset: 0,
-        zIndex: -10,
-        pointerEvents: 'none',
-      }
-    : {
-        position: 'fixed',
-        top: '-10%',
-        right: '-15%',
-        width: '65vw',
-        height: '65vw',
-        maxWidth: '700px',
-        maxHeight: '700px',
-        zIndex: -10,
-        pointerEvents: 'none',
-        opacity: 0.35,
-      };
+  // En login: pantalla completa con el objeto grande y centrado
+  // En otras páginas: esquina superior derecha, discreto
+  if (isLogin) {
+    return (
+      <>
+        <div style={{ position: 'fixed', inset: 0, zIndex: -20, background: '#080808' }} />
+        <div style={{ position: 'fixed', inset: 0, zIndex: -10, pointerEvents: 'auto' }}>
+          <Canvas
+            camera={{ position: [0, 0, 3.8], fov: 50 }}
+            gl={{ antialias: true, alpha: true }}
+            style={{ background: 'transparent', width: '100%', height: '100%' }}
+          >
+            <group scale={[1.6, 1.6, 1.6]}>
+              <Scene isLogin={true} />
+            </group>
+          </Canvas>
+        </div>
+        {/* Viñeta para oscurecer bordes */}
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: -9, pointerEvents: 'none',
+          background: 'radial-gradient(ellipse 90% 80% at 50% 50%, transparent 25%, rgba(8,8,8,0.75) 100%)',
+        }} />
+      </>
+    );
+  }
 
-  const cameraProps = isLogin
-    ? { position: [0, 0, 5.5], fov: 42 }
-    : { position: [0, 0, 2.8], fov: 55 };
-
-  // Escala del icosaedro
-  const scale = isLogin ? 1.1 : 1.4;
-
+  // Páginas internas — icosaedro esquina derecha, no interactivo
   return (
     <>
-      {/* Fondo base negro */}
-      <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: -20,
-          background: '#080808',
-        }}
-      />
-
-      {/* Gradiente radial sutil */}
-      <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: -15,
-          background: isLogin
-            ? 'radial-gradient(ellipse 70% 60% at 50% 50%, rgba(255,255,255,0.025) 0%, transparent 70%)'
-            : 'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(255,255,255,0.015) 0%, transparent 70%)',
-          pointerEvents: 'none',
-        }}
-      />
-
-      {/* Línea de acento superior (solo en páginas internas) */}
-      {!isLogin && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: '1px',
-            zIndex: -14,
-            background:
-              'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 40%, rgba(255,255,255,0.08) 60%, transparent 100%)',
-            pointerEvents: 'none',
-          }}
-        />
-      )}
-
-      {/* Canvas Three.js */}
-      <div style={canvasStyle}>
+      <div style={{ position: 'fixed', inset: 0, zIndex: -20, background: '#080808' }} />
+      <div style={{
+        position: 'fixed', top: '-5%', right: '-10%',
+        width: '55vw', height: '55vw', maxWidth: '600px', maxHeight: '600px',
+        zIndex: -10, pointerEvents: 'none', opacity: 0.3,
+      }}>
         <Canvas
-          camera={cameraProps}
+          camera={{ position: [0, 0, 3.2], fov: 50 }}
           gl={{ antialias: true, alpha: true }}
-          style={{ background: 'transparent' }}
+          style={{ background: 'transparent', width: '100%', height: '100%' }}
         >
-          <group scale={[scale, scale, scale]}>
-            <Scene isLogin={isLogin} />
+          <group scale={[1.4, 1.4, 1.4]}>
+            <ambientLight intensity={0.5} />
+            <directionalLight position={[6, 8, 5]} intensity={1.2} />
+            <IcosahedronMesh isLogin={false} />
           </group>
         </Canvas>
       </div>
+      <div style={{
+        position: 'fixed', top: 0, left: 0, right: 0, height: '1px', zIndex: -9, pointerEvents: 'none',
+        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.07) 40%, rgba(255,255,255,0.07) 60%, transparent)',
+      }} />
     </>
   );
 }
